@@ -139,8 +139,10 @@ class NextroEnv(gym.Env):
     )
 
     def __init__(self,
-        manual_modify=False, settings_loc=None, **kwargs
+        manual_modify=False, settings_loc=None, auto_camera=False, **kwargs
     ):
+        self.auto_camera = auto_camera
+
         kwargs = dict(self.default_kwargs, **kwargs)
         if settings_loc is None:
             self.settings = get_default_settings(manual_modify)
@@ -214,13 +216,15 @@ class NextroEnv(gym.Env):
             if self.render_env:
                 x, y, _ = self.robot.robot_body.get_position()
                 # numbers chosen for a good angle can be changed if desired
-                p.resetDebugVisualizerCamera(1.2, -145, -38, [x, y, 0])
+                if self.auto_camera:
+                    p.resetDebugVisualizerCamera(1.2, -145, -38, [x, y, 0])
             return
 
         # render is callled with param first time, initialization done here
         if kwargs.get('mode', 'human') == 'human':
             self.render_env = True
             self.client = p.connect(p.GUI)
+            p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
             self._time_delay = True
 
         elif self.client is None:
@@ -272,7 +276,8 @@ class NextroEnv(gym.Env):
             self._prev_position = self._original_position
             self._original_orientation = list(self.robot.robot_body.get_orientation())
             # move camera closer to robot
-            p.resetDebugVisualizerCamera(1.2, -145, -38, [0, 0, 0])
+            if self.auto_camera:
+                p.resetDebugVisualizerCamera(1.2, -145, -38, [0, 0, 0])
             p.setTimeStep(self._time_step, self.client)
 
         obs_size = self.settings['STORED_OBSERVATION_SIZE']
